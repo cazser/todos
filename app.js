@@ -1,8 +1,10 @@
 const express = require('express')
 const fs = require('fs')
-const {getDb} = require('./db')
+//const { report, title } = require('process')
+const {getDb, saveDb} = require('./db')
 const app = express()
-
+app.use(express.json())
+app.use(express.urlencoded())
 app.get('/todos', async (request,  response)=>{
     /* fs.readFile('./db.json', 'utf8', (err, data)=>{
 	    if(err){
@@ -49,8 +51,27 @@ app.get('/todos/:id', async (request,  response)=>{
     }
 })
 
-app.post('/todos', (request,  response)=>{
-    response.send('/todos')
+app.post('/todos', async (request,  response)=>{
+	try{
+	const todo = request.body;
+	if(!todo.title){
+		response.status(422).json({
+			"err": "The field title is required."
+		})
+	}
+	const db = await getDb();
+	
+	const lastTodo =db.todos[db.todos.length -1]
+	todo.id = lastTodo? lastTodo.id+1 :1 ;
+	//console.log(todo);
+	db.todos.push(todo)
+	await saveDb(db);
+	response.status(200).json(todo)
+}catch(err){
+	response.status(500).json({
+		err: err.message
+	})
+}
 })
 
 app.patch('/todos/:id', (request,  response)=>{
