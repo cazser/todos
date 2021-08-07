@@ -1,5 +1,6 @@
 const express = require('express')
 const fs = require('fs')
+const { couldStartTrivia } = require('typescript')
 //const { report, title } = require('process')
 const {getDb, saveDb} = require('./db')
 const app = express()
@@ -74,12 +75,44 @@ app.post('/todos', async (request,  response)=>{
 }
 })
 
-app.patch('/todos/:id', (request,  response)=>{
-    response.send('/todos/:id')
+app.patch('/todos/:id', async (request,  response)=>{
+    try{
+		const todo = request.body;
+		
+		const db =await getDb();
+		
+		const ret = db.todos.find(todo => todo.id === Number.parseInt(request.params.id))
+		//console.log(ret);
+		if(!ret){
+			return 	response.status(404).end()
+		}
+		Object.assign(ret, todo);
+		console.log(ret);
+		await saveDb(db);
+		response.status(200).json(ret);
+
+	}catch(err){
+		response.status(500).json({
+		err: err.message})
+	}
 })
 
-app.delete('/todos/:id', (request,  response)=>{
-    response.send('/todos/:id')
+app.delete('/todos/:id', async (request,  response)=>{
+    try{
+		const todoId =Number.parseInt( request.params.id);
+		const db = await getDb();
+		const index = db.todos.findIndex(todo => todo.id === todoId)
+		if(index === -1){
+			return response.status(404).end();
+		}
+
+		db.todos.splice(index, 1);
+		await saveDb(db);
+		response.status(204).end();
+	}catch(err){
+		response.status(500).json({
+		err: err.message})
+	}
 })
 
 
